@@ -18,12 +18,12 @@ Plataforma de administración sencilla para el apartado de salas de juntas
 	Entorno Virtual con las siguientes dependencias instaladas:
 	* django 3.1.4
 	* djangorestframework 3.12.2
-	* django-cors-headers 
+	* django-cors-headers 3.6.0
 	Informacion de autenticacion para requests a django:
 	* Username: lion
 	* Password: 123
 
 # Front-end
-	* Vue.js
-	* Axios
-	* Vuetify
+	* Vue.js 2.6.11
+	* Axios 0.21.1
+	* Vuetify 2.2.11
