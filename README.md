@@ -1,15 +1,15 @@
 # meeting_room
 Plataforma de administración sencilla para el apartado de salas de juntas
 
-Back-end
+# Back-end
 	Entorno Virtual con las siguientes dependencias instaladas:
-	- django
-	- djangorestframework
-	- django-cors-headers
+	* django 3.1.4
+	* djangorestframework
+	* django-cors-headers
 	Informacion de autenticacion para requests a django:
-	- Username: lion
-	- Password: 123
+	* Username: lion
+	* Password: 123
 
-Front-end
-	Vue.js
-	Vuetify
+# Front-end
+	* Vue.js
+	* Vuetify
