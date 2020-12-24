@@ -6,6 +6,7 @@ Plataforma de administración sencilla para el apartado de salas de juntas
 	- Descompimir el archivo 'env.rar' 
 	- Navegar hasta el directorio 'env\Scripts\activate' con la consola para correr el script
 	- Una vez que el entorno virtual esté activo, ser verá '(env)' al inicio de la línea de comando
+	- Ubicarse en el directio del proyecto '/meeting_room/' en donde se encuentra el archivo 'manage.py'
 	- Correr el servidor con 'python manage.py runserver'
 	
 	(Frontend)
