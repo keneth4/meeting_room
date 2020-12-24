@@ -1,7 +1,7 @@
 # meeting_room
 Plataforma de administración sencilla para el apartado de salas de juntas
 
-# Instalación y despliegue
+## Instalación y despliegue
 	(Backend | Entorno virtual con Django)
 	- Descompimir el archivo 'env.rar' 
 	- Navegar hasta el directorio 'env\Scripts\activate' con la consola para correr el script
@@ -14,7 +14,7 @@ Plataforma de administración sencilla para el apartado de salas de juntas
 	- Correr el comando 'npm i'
 	- Una vez instalado el proyecto con sus dependencias y paquetes correr el servidor con 'npm run serve'
 
-# Back-end
+## Back-end
 	Entorno Virtual con las siguientes dependencias instaladas:
 	* django 3.1.4
 	* djangorestframework 3.12.2
@@ -23,7 +23,7 @@ Plataforma de administración sencilla para el apartado de salas de juntas
 	* Username: lion
 	* Password: 123
 
-# Front-end
+## Front-end
 	* Vue.js 2.6.11
 	* Axios 0.21.1
 	* Vuetify 2.2.11
