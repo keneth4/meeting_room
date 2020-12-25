@@ -1,10 +1,9 @@
 <template>
-    <v-container>
+    <v-container fluid>
         <v-row>
         <v-col cols="3">
             <v-card
-            class="mx-auto"
-            min-width="400"
+            class="my-2"
             >
                 <v-card-text>
                     <p class="display-1 text--primary">
@@ -15,17 +14,17 @@
                     >
                         <v-text-field
                         v-model="nombre"
-                        label="Nombre"
+                        label="Descripción de la sala"
                         required
                         ></v-text-field>
 
-                        <v-select
+                        <!--<v-select
                         v-model="status"
                         :items="options"
                         :rules="[v => !!v || 'Item is required']"
                         label="Status"
                         required
-                        ></v-select>
+                        ></v-select>-->
                         <v-btn
                             text
                             color="teal accent-4"
@@ -36,50 +35,135 @@
                     </v-form>
                 </v-card-text>
             </v-card>
+            <v-card class="my-2 d-flex justify-center">
+                <v-chip
+                class="ma-2"
+                x-large>
+                    <p class="ma-2 display-1 text--primary">
+                        {{timer}}
+                    </p>
+                </v-chip>
+            </v-card>
         </v-col>
         <v-col cols="9">
             <v-card
-                class="mx-auto"
-                min-width="500"
-                max-width="600"
+                class="my-2"
             >
                 <v-card-text>
                 <p class="display-1 text--primary">
-                    Salas
+                    Salas de juntas
                 </p>
-                <v-card v-for="sala in salas" v-bind:key="sala.id" class="my-2">
-                    <!--<div v-if="sala.status !== 'ocupada'">-->
-                        <v-card-title>{{sala.nombre}} - {{sala.status}}</v-card-title>
-                        <v-card-actions>
-                            <v-btn
-                            text
-                            color="teal accent-4"
-                            @click="setStatus(sala.id,'ocupada')"
-                            >
-                            Ocupar
-                            </v-btn>
-                            <v-btn
-                            text
-                            color="teal accent-4"
-                            @click="setStatus(sala.id,'libre')"
-                            >
-                            Desocupar
-                            </v-btn>
-                            <v-spacer></v-spacer>
-                            <v-btn
-                            text
-                            color="teal accent-4"
-                            @click="deleteSala(sala.id)"
-                            >
-                            Borrar
-                            </v-btn>
-                        </v-card-actions>   
-                    <!--</div>-->
+                <v-card v-for="sala in salas" v-bind:key="sala.id" class="mx-auto ma-2">
+                    <v-card-title>{{sala.nombre}} - {{sala.status}} - {{sala.horarios}}</v-card-title>
+                    <v-card-actions>
+                        <!--<v-btn
+                        text
+                        color="teal accent-4"
+                        @click="setStatus(sala.id,'ocupada')"
+                        >
+                        Ocupar
+                        </v-btn>-->
+                        <v-btn
+                        text
+                        color="teal accent-4"
+                        @click="resetReserva(); salaSelected=sala; dialog = true;"
+                        >
+                        Reservar
+                        </v-btn>
+                        <v-btn
+                        text
+                        color="teal accent-4"
+                        @click="setStatus(sala.id,'libre')"
+                        >
+                        Desocupar
+                        </v-btn>
+                        <v-spacer></v-spacer>
+                        <v-btn
+                        text
+                        color="teal accent-4"
+                        @click="deleteSala(sala.id)"
+                        >
+                        Borrar
+                        </v-btn>
+                    </v-card-actions>  
                 </v-card>
                 </v-card-text>
             </v-card>
         </v-col>
         </v-row>
+        <div class="text-center">
+            <v-dialog
+            v-model="dialog"
+            width="700"
+            >
+            <v-card>
+                <v-card-title class="headline grey lighten-2">
+                Selecciona el horario en {{salaSelected.nombre}}
+                <v-spacer></v-spacer>
+                <v-btn
+                    color="primary"
+                    text
+                    @click="snackbar = true"
+                >
+                    Reservar
+                </v-btn>
+                </v-card-title>
+                <v-form class="mx-2">
+                    <v-text-field
+                    v-model="nombreReserva"
+                    label="Nombre para reservación"
+                    required
+                    clearable
+                    ></v-text-field>
+                </v-form>
+                <v-card-text class="d-flex justify-center">
+                    <v-container fluid>
+                        <v-row>
+                            <v-col cols="6" class="d-flex justify-center">
+                                <h4>Horario de Entrada</h4>
+                            </v-col>
+                            <v-col cols="6" class="d-flex justify-center">
+                                <h4>Horario de Salida</h4>
+                            </v-col>
+                        </v-row>
+                        <v-row>
+                            <v-col cols="6" class="d-flex justify-center">
+                                <v-time-picker
+                                v-model="horaInicio"
+                                format="ampm"
+                                ></v-time-picker>
+                            </v-col>
+                            <v-col cols="6" class="d-flex justify-center">
+                                <v-time-picker
+                                v-model="horaFin"
+                                format="ampm"
+                                ></v-time-picker>
+                            </v-col>
+                        </v-row>
+                    </v-container>
+                </v-card-text>
+                <v-card-actions>
+                
+                </v-card-actions>
+                <v-snackbar
+                v-model="snackbar"
+                >
+                {{ mensaje }}
+                {{ nombreReserva }} - {{ horaInicio }} - {{ horaFin }}
+                <template v-slot:action="{ attrs }">
+                    <v-btn
+                    color="teal accent-4"
+                    text
+                    v-bind="attrs"
+                    @click="snackbar = false"
+                    >
+                    <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                </template>
+                </v-snackbar>
+            </v-card>
+            </v-dialog>
+        </div>
     </v-container>
 </template>
 
@@ -92,17 +176,42 @@ export default {
   name: 'Salas',
   data: () => ({
       salas: [],
+      salaSelected: {},
       nombre: '',
+      horarios: [],
       status: 'libre',
-      options: [
-        'libre',
-        'ocupada',
-      ],
+      timer: '',
+      dialog: false,
+      snackbar: false,
+      mensaje: '',
+      nombreReserva: '',
+      horaInicio: '',
+      horaFin: '',
   }),
   mounted() {
+      
+  },
+  created() {
+      this.gettime()
       this.getSalas()
   },
   methods: {
+      gettime() {
+        var date= new Date();
+        var hr = date.getHours();
+        var m = date.getMinutes();
+        var s = date.getSeconds();
+        if(m < 10)
+        {
+            m = "0" + m
+        }
+        if(s < 10)
+        {
+            s = "0" + s
+        }
+        this.timer = hr + ":" + m + ":" + s;
+        setTimeout(() => this.gettime(), 100);
+      },
       getSalas(){
           axios({
               method: 'get',
@@ -120,6 +229,7 @@ export default {
                   url: 'http://127.0.0.1:8000/salas/',
                   data: {
                       nombre: this.nombre,
+                      horarios: this.horarios,
                       status: this.status
                   },
                   auth: {
@@ -130,10 +240,12 @@ export default {
                   let newSala = {
                       'id': response.data.id,
                       'nombre': this.nombre,
+                      'horarios': this.horarios,
                       'status': this.status
                   }
                   this.salas.push(newSala)
                   this.nombre = ''
+                  this.horarios = []
                   this.status = 'libre'
               }).catch((error)=>{
                   console.log(error)
@@ -177,6 +289,11 @@ export default {
                 this.getSalas()
               })
           }
+      },
+      resetReserva(){
+          this.nombreReserva = '';
+          this.horaInicio = '';
+          this.horaFin = '';
       }
   },
 }
