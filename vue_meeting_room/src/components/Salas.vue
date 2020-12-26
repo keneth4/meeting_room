@@ -7,7 +7,7 @@
             >
                 <v-card-text>
                     <p class="display-1 text--primary">
-                        Agregar Sala
+                        Agregar sala
                     </p>
                     <v-form
                     v-on:submit.prevent="addSala"
@@ -17,14 +17,6 @@
                         label="Descripción de la sala"
                         required
                         ></v-text-field>
-
-                        <!--<v-select
-                        v-model="status"
-                        :items="options"
-                        :rules="[v => !!v || 'Item is required']"
-                        label="Status"
-                        required
-                        ></v-select>-->
                         <v-btn
                             text
                             color="teal accent-4"
@@ -40,7 +32,7 @@
                 class="ma-2"
                 x-large>
                     <p class="ma-2 display-1 text--primary">
-                        {{timer}}
+                        {{ timer }}
                     </p>
                 </v-chip>
             </v-card>
@@ -53,16 +45,32 @@
                 <p class="display-1 text--primary">
                     Salas de juntas
                 </p>
-                <v-card v-for="sala in salas" v-bind:key="sala.id" class="mx-auto ma-2">
-                    <v-card-title>{{sala.nombre}} - {{sala.status}} - {{sala.horarios}}</v-card-title>
+                <v-card v-for="sala in salasJson" v-bind:key="sala.id" class="mx-auto ma-2">
+                    <v-card-title>
+                        {{ sala.nombre }} 
+                        <v-chip
+                        v-if="sala.status === 'libre'"
+                        color="green"
+                        class="ma-2">
+                            {{ sala.status }}
+                        </v-chip>
+                        <v-chip
+                        v-else
+                        color="red"
+                        class="ma-2">
+                            {{ sala.status }}
+                        </v-chip>
+                    </v-card-title>
+                    <v-card-text v-if="sala.horarios !== []">
+                        <v-container>
+                            <v-row v-for="(horario,index) in sala.horarios" v-bind:key="index">
+                                <v-col>
+                                    {{horario.nombre}} - {{horario.horaInicio}} - {{horario.horaFin}}
+                                </v-col>
+                            </v-row>
+                        </v-container>
+                    </v-card-text>
                     <v-card-actions>
-                        <!--<v-btn
-                        text
-                        color="teal accent-4"
-                        @click="setStatus(sala.id,'ocupada')"
-                        >
-                        Ocupar
-                        </v-btn>-->
                         <v-btn
                         text
                         color="teal accent-4"
@@ -98,12 +106,12 @@
             >
             <v-card>
                 <v-card-title class="headline grey lighten-2">
-                Selecciona el horario en {{salaSelected.nombre}}
+                Selecciona el horario en {{ salaSelected.nombre }}
                 <v-spacer></v-spacer>
                 <v-btn
                     color="primary"
                     text
-                    @click="snackbar = true"
+                    @click="reservarSala(salaSelected.id,nombreReserva,horaInicio,horaFin,salaSelected.horarios);"
                 >
                     Reservar
                 </v-btn>
@@ -149,7 +157,6 @@
                 v-model="snackbar"
                 >
                 {{ mensaje }}
-                {{ nombreReserva }} - {{ horaInicio }} - {{ horaFin }}
                 <template v-slot:action="{ attrs }">
                     <v-btn
                     color="teal accent-4"
@@ -163,6 +170,21 @@
                 </v-snackbar>
             </v-card>
             </v-dialog>
+            <v-snackbar
+            v-model="snackbar"
+            >
+            {{ mensaje }}
+            <template v-slot:action="{ attrs }">
+                <v-btn
+                color="teal accent-4"
+                text
+                v-bind="attrs"
+                @click="snackbar = false"
+                >
+                <v-icon>mdi-close</v-icon>
+                </v-btn>
+            </template>
+            </v-snackbar>
         </div>
     </v-container>
 </template>
@@ -176,6 +198,7 @@ export default {
   name: 'Salas',
   data: () => ({
       salas: [],
+      salasJson: [],
       salaSelected: {},
       nombre: '',
       horarios: [],
@@ -220,7 +243,10 @@ export default {
                   username: 'lion',
                   password: '123'
               }
-          }).then(response=>this.salas=response.data)
+          }).then((response)=> {
+              this.salas=response.data;
+              this.interpretarHorarios();
+          })
       },
       addSala(){
           if (this.nombre){
@@ -229,8 +255,7 @@ export default {
                   url: 'http://127.0.0.1:8000/salas/',
                   data: {
                       nombre: this.nombre,
-                      horarios: this.horarios,
-                      status: this.status
+                      horarios: JSON.stringify(this.horarios),
                   },
                   auth: {
                     username: 'lion',
@@ -247,14 +272,20 @@ export default {
                   this.nombre = ''
                   this.horarios = []
                   this.status = 'libre'
+                  this.getSalas();
               }).catch((error)=>{
                   console.log(error)
               })
+          }
+          else{
+              this.mensaje = 'Proporciona un nombre para la sala';
+              this.snackbar = true;
           }
       },
       setStatus(sala_id,sala_status){
           const sala = this.salas.filter(sala => sala.id === sala_id)[0]
           const nombre = sala.nombre
+          const horarios = sala.horarios
           axios({
               method: 'put',
               url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
@@ -263,14 +294,42 @@ export default {
               },
               data: {
                   nombre: nombre,
-                  status: sala_status
+                  status: sala_status,
               },
               auth: {
                   username: 'lion',
                   password: '123'
               }
           }).then(()=>{
-              sala.status = sala_status
+              sala.status = sala_status;
+              this.getSalas();
+          })
+      },
+      reservarSala(sala_id,nombre_reserva,hora_inicio,hora_fin,horarios_previos){
+          const sala = this.salas.filter(sala => sala.id === sala_id)[0];
+          const nombre = sala.nombre;
+          var horarios = [];
+          var horariosT = '';
+          const horarioNuevo = '{"nombre": "' + nombre_reserva + '", "horaInicio": "' +  hora_inicio + '", "horaFin": "' +  hora_fin + '"}';
+          horarios = horarios_previos;
+          horarios.push(JSON.parse(horarioNuevo));
+          axios({
+              method: 'put',
+              url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              data: {
+                  nombre: nombre,
+                  horarios: JSON.stringify(horarios),
+              },
+              auth: {
+                  username: 'lion',
+                  password: '123'
+              }
+          }).then(()=>{
+              this.getSalas();
+              this.dialog = false;
           })
       },
       deleteSala(sala_id){
@@ -294,6 +353,17 @@ export default {
           this.nombreReserva = '';
           this.horaInicio = '';
           this.horaFin = '';
+      },
+      interpretarHorarios(){
+          this.salasJson = [];
+          this.salas.forEach(sala => {
+              this.salasJson.push({
+                  'id': sala.id,
+                  'nombre': sala.nombre,
+                  'status': sala.status,
+                  'horarios': JSON.parse(sala.horarios)
+              })
+          });
       }
   },
 }

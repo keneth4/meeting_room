@@ -4,4 +4,4 @@ from .models import Sala
 class SalaSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Sala
-        fields = ('id', 'nombre', 'horarios', 'status')
+        fields = ('id', 'nombre', 'status', 'horarios')
