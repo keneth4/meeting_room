@@ -64,8 +64,19 @@
                     <v-card-text v-if="sala.horarios !== []">
                         <v-container>
                             <v-row v-for="(horario,index) in sala.horarios" v-bind:key="index">
-                                <v-col>
-                                    {{horario.nombre}} - {{horario.horaInicio}} - {{horario.horaFin}}
+                                <v-col cols="2">
+                                    <v-chip
+                                    class="ma-2"
+                                    color="success"
+                                    outlined
+                                    >
+                                        {{horario.nombre}}
+                                    </v-chip>
+                                </v-col>
+                                <v-col cols="2">
+                                    Ingreso: {{horario.horaInicio}}
+                                    <br>
+                                    Salida: {{horario.horaFin}}
                                 </v-col>
                             </v-row>
                         </v-container>
@@ -111,7 +122,7 @@
                 <v-btn
                     color="primary"
                     text
-                    @click="reservarSala(salaSelected.id,nombreReserva,horaInicio,horaFin,salaSelected.horarios);"
+                    @click="reservarSala(salaSelected.id,nombreReserva,horaInicio,horaFin,salaSelected.horarios); $refs.picker1.selectingHour = true; $refs.picker2.selectingHour = true;"
                 >
                     Reservar
                 </v-btn>
@@ -139,12 +150,14 @@
                                 <v-time-picker
                                 v-model="horaInicio"
                                 format="ampm"
+                                ref="picker1"
                                 ></v-time-picker>
                             </v-col>
                             <v-col cols="6" class="d-flex justify-center">
                                 <v-time-picker
                                 v-model="horaFin"
                                 format="ampm"
+                                ref="picker2"
                                 ></v-time-picker>
                             </v-col>
                         </v-row>
@@ -306,31 +319,58 @@ export default {
           })
       },
       reservarSala(sala_id,nombre_reserva,hora_inicio,hora_fin,horarios_previos){
-          const sala = this.salas.filter(sala => sala.id === sala_id)[0];
-          const nombre = sala.nombre;
-          var horarios = [];
-          var horariosT = '';
-          const horarioNuevo = '{"nombre": "' + nombre_reserva + '", "horaInicio": "' +  hora_inicio + '", "horaFin": "' +  hora_fin + '"}';
-          horarios = horarios_previos;
-          horarios.push(JSON.parse(horarioNuevo));
-          axios({
-              method: 'put',
-              url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              data: {
-                  nombre: nombre,
-                  horarios: JSON.stringify(horarios),
-              },
-              auth: {
-                  username: 'lion',
-                  password: '123'
+          if (this.nombreReserva != '' && this.horaInicio != '' && this.horaFin != ''){
+              const horaInicioHoras = parseInt(hora_inicio.substring(0,2));
+              const horaInicioMinutos = parseInt(hora_inicio.substring(3,5));
+              const horaFinHoras = parseInt(hora_fin.substring(0,2));
+              const horaFinMinutos = parseInt(hora_fin.substring(3,5));
+              var date1= new Date();
+              date1.setHours(horaInicioHoras);
+              date1.setMinutes(horaInicioMinutos);
+              var date2= new Date();
+              date2.setHours(horaFinHoras);
+              date2.setMinutes(horaFinMinutos);
+              var diferencia = ((date2-date1)/1000)/60;//Diferencia de Horario en minutos
+              if (diferencia <= 120 && diferencia > 0){
+                const sala = this.salas.filter(sala => sala.id === sala_id)[0];
+                const nombre = sala.nombre;
+                var horarios = [];
+                var horariosT = '';
+                const horarioNuevo = '{"nombre": "' + nombre_reserva + '", "horaInicio": "' +  hora_inicio + '", "horaFin": "' +  hora_fin + '"}';
+                horarios = horarios_previos;
+                horarios.push(JSON.parse(horarioNuevo));
+                axios({
+                    method: 'put',
+                    url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    data: {
+                        nombre: nombre,
+                        horarios: JSON.stringify(horarios),
+                    },
+                    auth: {
+                        username: 'lion',
+                        password: '123'
+                    }
+                }).then(()=>{
+                    this.dialog = false;
+                    this.getSalas();
+                })
               }
-          }).then(()=>{
-              this.getSalas();
-              this.dialog = false;
-          })
+              else if (diferencia <= 0){
+                this.mensaje = 'La hora de entrada debe ser menor a la de salida';
+                this.snackbar = true;
+              }
+              else{
+                this.mensaje = 'Sólo se puede escoger un intervalo de 2 horas o menor';
+                this.snackbar = true;
+              }
+          }
+          else{
+              this.mensaje = 'Tienes que llenar todos los campos de la reserva';
+              this.snackbar = true;
+          }
       },
       deleteSala(sala_id){
           if (sala_id){
