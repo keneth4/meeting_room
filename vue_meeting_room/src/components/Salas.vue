@@ -47,7 +47,7 @@
                 </p>
                 <v-card v-for="sala in salasJson" v-bind:key="sala.id" class="mx-auto ma-2">
                     <v-card-title>
-                        {{ sala.nombre }} 
+                        {{ sala.nombre }}
                         <v-chip
                         v-if="sala.status === 'libre'"
                         color="green"
@@ -60,23 +60,23 @@
                         class="ma-2">
                             {{ sala.status }}
                         </v-chip>
-                    </v-card-title>
+                    </v-card-title> 
                     <v-card-text v-if="sala.horarios !== []">
                         <v-container>
                             <v-row v-for="(horario,index) in sala.horarios" v-bind:key="index">
-                                <v-col cols="2">
+                                <v-col class="d-flex justify-end">
                                     <v-chip
                                     class="ma-2"
                                     color="success"
                                     outlined
                                     >
-                                        {{horario.nombre}}
+                                        {{ horario.nombre }}
                                     </v-chip>
                                 </v-col>
-                                <v-col cols="2">
-                                    Ingreso: {{horario.horaInicio}}
+                                <v-col>
+                                    Ingreso: {{ horario.horaInicio }}
                                     <br>
-                                    Salida: {{horario.horaFin}}
+                                    Salida: {{ horario.horaFin }}
                                 </v-col>
                             </v-row>
                         </v-container>
@@ -122,7 +122,7 @@
                 <v-btn
                     color="primary"
                     text
-                    @click="reservarSala(salaSelected.id,nombreReserva,horaInicio,horaFin,salaSelected.horarios); $refs.picker1.selectingHour = true; $refs.picker2.selectingHour = true;"
+                    @click="reservarSala(salaSelected.id); $refs.picker1.selectingHour = true; $refs.picker2.selectingHour = true;"
                 >
                     Reservar
                 </v-btn>
@@ -257,6 +257,7 @@ export default {
                   password: '123'
               }
           }).then((response)=> {
+              this.salaSelected={};
               this.salas=response.data;
               this.interpretarHorarios();
           })
@@ -318,45 +319,45 @@ export default {
               this.getSalas();
           })
       },
-      reservarSala(sala_id,nombre_reserva,hora_inicio,hora_fin,horarios_previos){
+      reservarSala(sala_id){
           if (this.nombreReserva != '' && this.horaInicio != '' && this.horaFin != ''){
-              const horaInicioHoras = parseInt(hora_inicio.substring(0,2));
-              const horaInicioMinutos = parseInt(hora_inicio.substring(3,5));
-              const horaFinHoras = parseInt(hora_fin.substring(0,2));
-              const horaFinMinutos = parseInt(hora_fin.substring(3,5));
-              var date1= new Date();
-              date1.setHours(horaInicioHoras);
-              date1.setMinutes(horaInicioMinutos);
-              var date2= new Date();
-              date2.setHours(horaFinHoras);
-              date2.setMinutes(horaFinMinutos);
-              var diferencia = ((date2-date1)/1000)/60;//Diferencia de Horario en minutos
+              const nombre_reserva = this.nombreReserva;
+              const hora_inicio = this.horaInicio;
+              const hora_fin = this.horaFin;
+              var fechas = this.pasearHorario(hora_inicio,hora_fin);
+              var diferencia = ((fechas[1]-fechas[0])/1000)/60;//Diferencia de Horario en minutos
               if (diferencia <= 120 && diferencia > 0){
                 const sala = this.salas.filter(sala => sala.id === sala_id)[0];
                 const nombre = sala.nombre;
+                var horarios_previos = JSON.parse(sala.horarios);
                 var horarios = [];
-                var horariosT = '';
                 const horarioNuevo = '{"nombre": "' + nombre_reserva + '", "horaInicio": "' +  hora_inicio + '", "horaFin": "' +  hora_fin + '"}';
-                horarios = horarios_previos;
+                horarios = JSON.parse(JSON.stringify(horarios_previos));
                 horarios.push(JSON.parse(horarioNuevo));
-                axios({
-                    method: 'put',
-                    url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    data: {
-                        nombre: nombre,
-                        horarios: JSON.stringify(horarios),
-                    },
-                    auth: {
-                        username: 'lion',
-                        password: '123'
-                    }
-                }).then(()=>{
-                    this.dialog = false;
-                    this.getSalas();
-                })
+                if (this.estaLibre(horarios_previos,fechas[0],fechas[1])){
+                    axios({
+                        method: 'put',
+                        url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        data: {
+                            nombre: nombre,
+                            horarios: JSON.stringify(horarios),
+                        },
+                        auth: {
+                            username: 'lion',
+                            password: '123'
+                        }
+                    }).then(()=>{
+                        this.dialog = false;
+                        this.getSalas();
+                    })
+                }
+                else{
+                    this.mensaje = 'La sala ya está parcial o completamente ocupada en ese horario';
+                    this.snackbar = true;
+                }
               }
               else if (diferencia <= 0){
                 this.mensaje = 'La hora de entrada debe ser menor a la de salida';
@@ -404,7 +405,31 @@ export default {
                   'horarios': JSON.parse(sala.horarios)
               })
           });
-      }
+      },
+      pasearHorario(hora_inicio,hora_fin){
+          const horaInicioHoras = parseInt(hora_inicio.substring(0,2));
+          const horaInicioMinutos = parseInt(hora_inicio.substring(3,5));
+          const horaFinHoras = parseInt(hora_fin.substring(0,2));
+          const horaFinMinutos = parseInt(hora_fin.substring(3,5));
+          var date1= new Date();
+          date1.setHours(horaInicioHoras);
+          date1.setMinutes(horaInicioMinutos);
+          var date2= new Date();
+          date2.setHours(horaFinHoras);
+          date2.setMinutes(horaFinMinutos);
+          return [date1,date2];
+      },
+      estaLibre(horarios,fecha_inicio,fecha_fin){
+          horarios = JSON.parse(JSON.stringify(horarios));
+          var bandera = true;//Comienza estando libre
+          horarios.forEach(horario => {
+              var fechas = this.pasearHorario(horario.horaInicio,horario.horaFin);
+              if ((fecha_inicio <= fechas[0] && fecha_fin >= fechas[1]) || (fecha_inicio >= fechas[0] && fecha_fin <= fechas[1]) || (fecha_inicio <= fechas[0] && fecha_fin <= fechas[1] && fecha_fin > fechas[0]) || (fechas[0] <= fecha_inicio && fechas[1] <= fecha_fin && fechas[1] > fecha_inicio)){
+                  bandera = false;//Si esta ocupada en alguno de los horarios, se invetira la bandera
+              }
+          });
+          return bandera;
+      },
   },
 }
 </script>
