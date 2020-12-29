@@ -225,11 +225,11 @@ export default {
       horaFin: '',
   }),
   mounted() {
-      
+      this.verificarStatusSalas();
   },
   created() {
-      this.gettime()
-      this.getSalas()
+      this.gettime();
+      this.getSalas();
   },
   methods: {
       gettime() {
@@ -246,7 +246,11 @@ export default {
             s = "0" + s
         }
         this.timer = hr + ":" + m + ":" + s;
-        setTimeout(() => this.gettime(), 100);
+        if(s == "00"){
+            this.verificarStatusSalas();
+            //this.getSalas();
+        }
+        setTimeout(() => this.gettime(), 1000);
       },
       getSalas(){
           axios({
@@ -352,6 +356,7 @@ export default {
                     }).then(()=>{
                         this.dialog = false;
                         this.getSalas();
+                        //this.verificarSala(sala);
                     })
                 }
                 else{
@@ -397,7 +402,8 @@ export default {
       },
       interpretarHorarios(){
           this.salasJson = [];
-          this.salas.forEach(sala => {
+          const salas = JSON.parse(JSON.stringify(this.salas));
+          salas.forEach(sala => {
               this.salasJson.push({
                   'id': sala.id,
                   'nombre': sala.nombre,
@@ -430,6 +436,28 @@ export default {
           });
           return bandera;
       },
+      verificarStatusSalas(){
+        const salas = JSON.parse(JSON.stringify(this.salas));
+        salas.forEach(sala => {
+            this.verificarSala(sala);
+        });
+      },
+      verificarSala(sala){
+        const horarios = JSON.parse(sala.horarios);
+        horarios.forEach(horario => {
+            var ahora = new Date();
+            var fechas = this.pasearHorario(horario.horaInicio,horario.horaFin);
+            if (ahora >= fechas[0] && ahora < fechas[1] && sala.status == 'libre'){
+                    this.setStatus(sala.id,'ocupada');
+            }
+            else if (sala.status == 'ocupada'){
+                this.setStatus(sala.id,'libre');
+            }
+        });
+      },
+      liberarSala(){
+          
+      }
   },
 }
 </script>
