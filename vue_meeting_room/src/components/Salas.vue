@@ -92,7 +92,7 @@
                         <v-btn
                         text
                         color="teal accent-4"
-                        @click="setStatus(sala.id,'libre')"
+                        @click="liberarSala(sala.id)"
                         >
                         Desocupar
                         </v-btn>
@@ -225,11 +225,12 @@ export default {
       horaFin: '',
   }),
   mounted() {
-      this.verificarStatusSalas();
+    
   },
   created() {
       this.gettime();
       this.getSalas();
+      this.verificarStatusSalas();
   },
   methods: {
       gettime() {
@@ -303,7 +304,6 @@ export default {
       setStatus(sala_id,sala_status){
           const sala = this.salas.filter(sala => sala.id === sala_id)[0]
           const nombre = sala.nombre
-          const horarios = sala.horarios
           axios({
               method: 'put',
               url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
@@ -455,8 +455,41 @@ export default {
             }
         });
       },
-      liberarSala(){
-          
+      liberarSala(sala_id){
+          const sala = this.salas.filter(sala => sala.id === sala_id)[0];
+          const nombre = sala.nombre;
+          const horarios = JSON.parse(sala.horarios);
+          var nuevosHorarios = {};
+          var bandera = false;
+          horarios.forEach(horario => {
+            var ahora = new Date();
+            var fechas = this.pasearHorario(horario.horaInicio,horario.horaFin);
+            if (ahora >= fechas[0] && ahora < fechas[1]){
+                nuevosHorarios = horarios.filter(x => x != horario);
+                bandera = true;
+            }
+        });
+        if (bandera){
+            axios({
+                method: 'put',
+                url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                data: {
+                    nombre: nombre,
+                    status: 'libre',
+                    horarios: JSON.stringify(nuevosHorarios),
+                },
+                auth: {
+                    username: 'lion',
+                    password: '123'
+                }
+            }).then(()=>{
+                sala.status = 'libre';
+                this.getSalas();
+            });
+        }
       }
   },
 }
