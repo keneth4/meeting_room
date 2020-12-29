@@ -61,8 +61,8 @@
                             {{ sala.status }}
                         </v-chip>
                     </v-card-title> 
-                    <v-card-text v-if="sala.horarios !== []">
-                        <v-container>
+                    <v-card-text >
+                        <v-container v-if="hayHorarios(sala.horarios)">
                             <v-row v-for="(horario,index) in sala.horarios" v-bind:key="index">
                                 <v-col class="d-flex justify-end">
                                     <v-chip
@@ -80,6 +80,9 @@
                                 </v-col>
                             </v-row>
                         </v-container>
+                        <v-container v-else class="d-flex justify-center">
+                            <p>La sala aún no cuenta con horarios reservados.</p>
+                        </v-container>
                     </v-card-text>
                     <v-card-actions>
                         <v-btn
@@ -92,6 +95,7 @@
                         <v-btn
                         text
                         color="teal accent-4"
+                        v-if="sala.status === 'ocupada'"
                         @click="liberarSala(sala.id)"
                         >
                         Desocupar
@@ -230,7 +234,6 @@ export default {
   created() {
       this.gettime();
       this.getSalas();
-      this.verificarStatusSalas();
   },
   methods: {
       gettime() {
@@ -249,7 +252,6 @@ export default {
         this.timer = hr + ":" + m + ":" + s;
         if(s == "00"){
             this.verificarStatusSalas();
-            //this.getSalas();
         }
         setTimeout(() => this.gettime(), 1000);
       },
@@ -356,7 +358,6 @@ export default {
                     }).then(()=>{
                         this.dialog = false;
                         this.getSalas();
-                        //this.verificarSala(sala);
                     })
                 }
                 else{
@@ -427,22 +428,22 @@ export default {
       },
       estaLibre(horarios,fecha_inicio,fecha_fin){
           horarios = JSON.parse(JSON.stringify(horarios));
-          var bandera = true;//Comienza estando libre
+          var bandera = true;
           horarios.forEach(horario => {
               var fechas = this.pasearHorario(horario.horaInicio,horario.horaFin);
               if ((fecha_inicio <= fechas[0] && fecha_fin >= fechas[1]) || (fecha_inicio >= fechas[0] && fecha_fin <= fechas[1]) || (fecha_inicio <= fechas[0] && fecha_fin <= fechas[1] && fecha_fin > fechas[0]) || (fechas[0] <= fecha_inicio && fechas[1] <= fecha_fin && fechas[1] > fecha_inicio)){
-                  bandera = false;//Si esta ocupada en alguno de los horarios, se invetira la bandera
+                  bandera = false;
               }
           });
           return bandera;
       },
-      verificarStatusSalas(){
+      verificarStatusSalas(){//Hace falta que borre horarios ya pasados y que funcione de manera 100% correcta
         const salas = JSON.parse(JSON.stringify(this.salas));
         salas.forEach(sala => {
             this.verificarSala(sala);
         });
       },
-      verificarSala(sala){
+      verificarSala(sala){//Hace falta que borre horarios ya pasados y que funcione de manera 100% correcta
         const horarios = JSON.parse(sala.horarios);
         horarios.forEach(horario => {
             var ahora = new Date();
@@ -490,6 +491,10 @@ export default {
                 this.getSalas();
             });
         }
+      },
+      hayHorarios(horarios){
+          if (horarios.length == 0){ return false }
+          else { return true }
       }
   },
 }
