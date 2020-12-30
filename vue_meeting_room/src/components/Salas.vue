@@ -131,7 +131,7 @@
                     Reservar
                 </v-btn>
                 </v-card-title>
-                <v-form class="mx-2">
+                <v-form class="mx-2" v-on:submit.prevent="">
                     <v-text-field
                     v-model="nombreReserva"
                     label="Nombre para reservación"
@@ -234,6 +234,7 @@ export default {
   created() {
       this.gettime();
       this.getSalas();
+      this.verificarStatusSalas();
   },
   methods: {
       gettime() {
@@ -264,7 +265,6 @@ export default {
                   password: '123'
               }
           }).then((response)=> {
-              this.salaSelected={};
               this.salas=response.data;
               this.interpretarHorarios();
           })
@@ -303,74 +303,70 @@ export default {
               this.snackbar = true;
           }
       },
-      setStatus(sala_id,sala_status){
-          const sala = this.salas.filter(sala => sala.id === sala_id)[0]
-          const nombre = sala.nombre
-          axios({
-              method: 'put',
-              url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              data: {
-                  nombre: nombre,
-                  status: sala_status,
-              },
-              auth: {
-                  username: 'lion',
-                  password: '123'
-              }
-          }).then(()=>{
-              sala.status = sala_status;
-              this.getSalas();
-          })
-      },
       reservarSala(sala_id){
-          if (this.nombreReserva != '' && this.horaInicio != '' && this.horaFin != ''){
+          if (this.nombreReserva != '' && this.horaInicio != '' && this.horaFin != ''){//Que no haya campos vacios
               const nombre_reserva = this.nombreReserva;
               const hora_inicio = this.horaInicio;
               const hora_fin = this.horaFin;
+              var ahora = new Date();
               var fechas = this.pasearHorario(hora_inicio,hora_fin);
-              var diferencia = ((fechas[1]-fechas[0])/1000)/60;//Diferencia de Horario en minutos
-              if (diferencia <= 120 && diferencia > 0){
-                const sala = this.salas.filter(sala => sala.id === sala_id)[0];
-                const nombre = sala.nombre;
-                var horarios_previos = JSON.parse(sala.horarios);
-                var horarios = [];
-                const horarioNuevo = '{"nombre": "' + nombre_reserva + '", "horaInicio": "' +  hora_inicio + '", "horaFin": "' +  hora_fin + '"}';
-                horarios = JSON.parse(JSON.stringify(horarios_previos));
-                horarios.push(JSON.parse(horarioNuevo));
-                if (this.estaLibre(horarios_previos,fechas[0],fechas[1])){
-                    axios({
-                        method: 'put',
-                        url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        data: {
-                            nombre: nombre,
-                            horarios: JSON.stringify(horarios),
-                        },
-                        auth: {
-                            username: 'lion',
-                            password: '123'
-                        }
-                    }).then(()=>{
-                        this.dialog = false;
-                        this.getSalas();
-                    })
+              if (fechas[0] >= ahora && fechas[1] >= ahora){//Que solo se pueda escoger un horario a partir de la hora actual
+                var diferencia = ((fechas[1]-fechas[0])/1000)/60;
+                if (diferencia <= 120 && diferencia > 0){//Que el horario sea de maximo 2 horas
+                    const sala = this.salas.filter(sala => sala.id === sala_id)[0];
+                    var nombre = '';
+                    var horarios_previos = [];
+                    if (sala == undefined){
+                        nombre = this.salaSelected.nombre;
+                        horarios_previos = JSON.parse(this.salaSelected.horarios);
+                    }
+                    else {
+                        nombre = sala.nombre;
+                        horarios_previos = JSON.parse(sala.horarios);
+                    }
+                    var horarios = [];
+                    const horarioNuevo = '{"nombre": "' + nombre_reserva + '", "horaInicio": "' +  hora_inicio + '", "horaFin": "' +  hora_fin + '"}';
+                    horarios = JSON.parse(JSON.stringify(horarios_previos));
+                    horarios.push(JSON.parse(horarioNuevo));
+                    const nuevo_status = this.verificarSala(horarios);
+                    if (this.estaLibre(horarios_previos,fechas[0],fechas[1])){//Que no haya otro horario existente en el mismo rango de tiempo
+                        axios({
+                            method: 'put',
+                            url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            data: {
+                                nombre: nombre,
+                                horarios: JSON.stringify(horarios),
+                                status: nuevo_status,
+                            },
+                            auth: {
+                                username: 'lion',
+                                password: '123'
+                            }
+                        }).then(()=>{
+                            this.dialog = false;
+                            sala.status = nuevo_status;
+                            this.getSalas();
+                        })
+                    }
+                    else{
+                        this.mensaje = 'La sala ya está parcial o completamente ocupada en ese horario';
+                        this.snackbar = true;
+                    }
+                }
+                else if (diferencia <= 0){//Que la hora de entrada y salida sean coherentes entre si
+                    this.mensaje = 'La hora de entrada debe ser menor a la de salida';
+                    this.snackbar = true;
                 }
                 else{
-                    this.mensaje = 'La sala ya está parcial o completamente ocupada en ese horario';
+                    this.mensaje = 'Sólo se puede escoger un intervalo de 2 horas o menor';
                     this.snackbar = true;
                 }
               }
-              else if (diferencia <= 0){
-                this.mensaje = 'La hora de entrada debe ser menor a la de salida';
-                this.snackbar = true;
-              }
-              else{
-                this.mensaje = 'Sólo se puede escoger un intervalo de 2 horas o menor';
+              else {
+                this.mensaje = 'Sólo se puede escoger un horario a partir de la hora actual';
                 this.snackbar = true;
               }
           }
@@ -440,21 +436,59 @@ export default {
       verificarStatusSalas(){//Hace falta que borre horarios ya pasados y que funcione de manera 100% correcta
         const salas = JSON.parse(JSON.stringify(this.salas));
         salas.forEach(sala => {
-            this.verificarSala(sala);
+            const nombre = sala.nombre;
+            const horarios = JSON.parse(sala.horarios);
+            const nuevo_status = this.verificarSala(horarios);
+            var nuevosHorarios = JSON.parse(sala.horarios);
+            /*
+            horarios.forEach(horario => {
+                var ahora = new Date();
+                var fechas = this.pasearHorario(horario.horaInicio,horario.horaFin);
+                if (ahora >= fechas[1]){
+                    nuevosHorarios = horarios.filter(x => x != horario);
+                }
+            });/*
+            if (nuevosHorarios.length != 0){
+                nuevo_status = this.verificarSala(nuevosHorarios);
+            }
+            
+            console.log("En sala "+nombre);
+            console.log("El nuevo horario queda:");
+            console.log(nuevosHorarios);
+            */
+            console.log(nuevo_status);
+            axios({
+                method: 'put',
+                url: 'http://127.0.0.1:8000/salas/' + sala.id + '/',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                data: {
+                    nombre: nombre,
+                    status: nuevo_status,
+                    //horarios: JSON.stringify(nuevosHorarios),
+                },
+                auth: {
+                    username: 'lion',
+                    password: '123'
+                }
+            }).then(()=>{
+                sala.status = nuevo_status;
+                this.getSalas();
+            })
         });
       },
-      verificarSala(sala){//Hace falta que borre horarios ya pasados y que funcione de manera 100% correcta
-        const horarios = JSON.parse(sala.horarios);
+      verificarSala(hrs){//Hace falta que borre horarios ya pasados y que funcione de manera 100% correcta
+        const horarios = JSON.parse(JSON.stringify(hrs));
+        var status = 'libre';
         horarios.forEach(horario => {
             var ahora = new Date();
             var fechas = this.pasearHorario(horario.horaInicio,horario.horaFin);
-            if (ahora >= fechas[0] && ahora < fechas[1] && sala.status == 'libre'){
-                    this.setStatus(sala.id,'ocupada');
-            }
-            else if (sala.status == 'ocupada'){
-                this.setStatus(sala.id,'libre');
+            if (ahora >= fechas[0] && ahora < fechas[1]){
+                status = 'ocupada';
             }
         });
+        return status;
       },
       liberarSala(sala_id){
           const sala = this.salas.filter(sala => sala.id === sala_id)[0];
@@ -469,7 +503,7 @@ export default {
                 nuevosHorarios = horarios.filter(x => x != horario);
                 bandera = true;
             }
-        });
+          });
         if (bandera){
             axios({
                 method: 'put',
