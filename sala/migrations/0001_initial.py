@@ -2,7 +2,7 @@
 
 from django.db import migrations, models
 
-
+# Migración de la estructura a la base de datos dada por el modelo 'Sala' 
 class Migration(migrations.Migration):
 
     initial = True

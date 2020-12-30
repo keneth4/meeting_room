@@ -5,6 +5,7 @@
             <v-card
             class="my-2"
             >
+                                                        <!-- Tarjeta para añadir nuevas salas -->
                 <v-card-text>
                     <p class="display-1 text--primary">
                         Agregar sala
@@ -27,6 +28,7 @@
                     </v-form>
                 </v-card-text>
             </v-card>
+                                                        <!-- Tarjeta con reloj grande -->
             <v-card class="my-2 d-flex justify-center">
                 <v-chip
                 class="ma-2"
@@ -38,6 +40,7 @@
             </v-card>
         </v-col>
         <v-col cols="9">
+                                                        <!-- Sección de despliegue para la lista de salas -->
             <v-card
                 class="my-2"
             >
@@ -45,6 +48,7 @@
                 <p class="display-1 text--primary">
                     Salas de juntas
                 </p>
+                                                        <!-- Tarjeta con todo el contenido de la sala -->
                 <v-card v-for="sala in salasJson" v-bind:key="sala.id" class="mx-auto ma-2">
                     <v-card-title>
                         {{ sala.nombre }}
@@ -117,6 +121,7 @@
         </v-col>
         </v-row>
         <div class="text-center">
+                                                        <!-- Dialog para mostrar el menú de horario nuevo -->
             <v-dialog
             v-model="dialog"
             width="700"
@@ -172,6 +177,7 @@
                 <v-card-actions>
                 
                 </v-card-actions>
+                                                        <!-- Snackbar para mostrar notificaciones de errores en el horario nuevo -->
                 <v-snackbar
                 v-model="snackbar"
                 >
@@ -189,6 +195,7 @@
                 </v-snackbar>
             </v-card>
             </v-dialog>
+                                                        <!-- Snackbar para mostrar notificaciones de sala nueva -->
             <v-snackbar
             v-model="snackbar"
             >
@@ -216,30 +223,30 @@ import axios from 'axios'
 export default {
   name: 'Salas',
   data: () => ({
-      salas: [],
-      salasJson: [],
-      salaSelected: {},
-      nombre: '',
-      horarios: [],
-      status: 'libre',
-      timer: '',
-      dialog: false,
-      snackbar: false,
-      mensaje: '',
-      nombreReserva: '',
-      horaInicio: '',
-      horaFin: '',
+      salas: [], // Array de todas las salas existentes, obtenido de la API
+      salasJson: [], // Array de todas las salas existentes, con el Array de horarios parseado a objeto
+      salaSelected: {}, // Sala seleccionada, con reservación en curso
+      nombre: '', // Campo de llenado, nombre de la sala
+      horarios: [], // Valor inicial para crear la sala 
+      status: 'libre', // Valor inicial para crear la sala
+      timer: '', // Timer/Reloj de pantalla 
+      dialog: false, // Variable de activación para el Dialog
+      snackbar: false, // Variable de activación para los Snackbar
+      mensaje: '', // Contenido del texto en el Snackbar
+      nombreReserva: '', // Campo de llenado, nombre de reserva para el nuevo horario
+      horaInicio: '', // Campo de llenado, hora de inicio para el nuevo horario
+      horaFin: '', // Campo de llenado, hora de salida para el nuevo horario
   }),
   mounted() {
     
   },
-  created() {
+  created() { // Al cargar la página se cargaran las siguientes funciones
       this.gettime();
       this.getSalas();
       this.verificarStatusSalas();
   },
-  methods: {
-      gettime() {
+  methods: { // Todas las funciones existentes en la página
+      gettime() { // Reloj
         var date= new Date();
         var hr = date.getHours();
         var m = date.getMinutes();
@@ -254,11 +261,11 @@ export default {
         }
         this.timer = hr + ":" + m + ":" + s;
         if(s == "00"){
-            this.verificarStatusSalas();
+            this.verificarStatusSalas(); // Cada minuto se verifica el status de las salas
         }
         setTimeout(() => this.gettime(), 1000);
       },
-      getSalas(){
+      getSalas(){ // Cargar las salas en la Tarjeta principal
           axios({
               method: 'get',
               url: 'http://127.0.0.1:8000/salas/',
@@ -269,9 +276,11 @@ export default {
           }).then((response)=> {
               this.salas=response.data;
               this.interpretarHorarios();
+          }).catch((error)=>{
+              console.log(error)
           })
       },
-      addSala(){
+      addSala(){ // Añadir nueva Sala a la base de datos
           if (this.nombre){
               axios({
                   method: 'post',
@@ -305,7 +314,7 @@ export default {
               this.snackbar = true;
           }
       },
-      reservarSala(sala_id){
+      reservarSala(sala_id){ // Reservar un horario nuevo en la sala indicada
           if (this.nombreReserva != '' && this.horaInicio != '' && this.horaFin != ''){//Que no haya campos vacios
               const nombre_reserva = this.nombreReserva;
               const hora_inicio = this.horaInicio;
@@ -351,6 +360,8 @@ export default {
                             this.dialog = false;
                             sala.status = nuevo_status;
                             this.getSalas();
+                        }).catch((error)=>{
+                            console.log(error)
                         })
                     }
                     else{
@@ -377,7 +388,7 @@ export default {
               this.snackbar = true;
           }
       },
-      deleteSala(sala_id){
+      deleteSala(sala_id){ // Borrar la sala indicada
           if (sala_id){
               axios({
                   method: 'delete',
@@ -391,15 +402,17 @@ export default {
                   }
               }).then(()=>{
                 this.getSalas()
+              }).catch((error)=>{
+                  console.log(error)
               })
           }
       },
-      resetReserva(){
+      resetReserva(){ // Reiniciar datos de reserva después de haber guardado una nueva
           this.nombreReserva = '';
           this.horaInicio = '';
           this.horaFin = '';
       },
-      interpretarHorarios(){
+      interpretarHorarios(){ // Interpretar el Array de horarios de tipo texto JSON a tipo Objeto
           this.salasJson = [];
           const salas = JSON.parse(JSON.stringify(this.salas));
           salas.forEach(sala => {
@@ -411,7 +424,7 @@ export default {
               })
           });
       },
-      pasearHorario(hora_inicio,hora_fin){
+      pasearHorario(hora_inicio,hora_fin){ // Parsear dos textos en formato HH:mm a dos tipo Date seteadas con dichos horarios
           const horaInicioHoras = parseInt(hora_inicio.substring(0,2));
           const horaInicioMinutos = parseInt(hora_inicio.substring(3,5));
           const horaFinHoras = parseInt(hora_fin.substring(0,2));
@@ -424,7 +437,7 @@ export default {
           date2.setMinutes(horaFinMinutos);
           return [date1,date2];
       },
-      estaLibre(horarios,fecha_inicio,fecha_fin){
+      estaLibre(horarios,fecha_inicio,fecha_fin){ // Indicar si un horario nuevo está disponible en un Array de horarios de una sala
           horarios = JSON.parse(JSON.stringify(horarios));
           var bandera = true;
           horarios.forEach(horario => {
@@ -435,7 +448,7 @@ export default {
           });
           return bandera;
       },
-      verificarStatusSalas(){//Hace falta que borre horarios ya pasados y que funcione de manera 100% correcta
+      verificarStatusSalas(){ // Verificar el status de todas las salas según sus respectivos horarios
         const salas = JSON.parse(JSON.stringify(this.salas));
         salas.forEach(sala => {
             const nombre = sala.nombre;
@@ -467,10 +480,12 @@ export default {
             }).then(()=>{
                 sala.status = nuevo_status;
                 this.getSalas();
+            }).catch((error)=>{
+                console.log(error)
             })
         });
       },
-      verificarSala(hrs){//Hace falta que borre horarios ya pasados y que funcione de manera 100% correcta
+      verificarSala(hrs){ // Verificar el horario de una sala y devolver si está ocupada o libre según la hora actual
         const horarios = JSON.parse(JSON.stringify(hrs));
         var status = 'libre';
         horarios.forEach(horario => {
@@ -482,7 +497,7 @@ export default {
         });
         return status;
       },
-      liberarSala(sala_id){
+      liberarSala(sala_id){ // Liberar una sala que esté ocupada y borrar su horario en curso
           const sala = this.salas.filter(sala => sala.id === sala_id)[0];
           const nombre = sala.nombre;
           const horarios = JSON.parse(sala.horarios);
@@ -515,14 +530,16 @@ export default {
             }).then(()=>{
                 sala.status = 'libre';
                 this.getSalas();
-            });
+            }).catch((error)=>{
+                console.log(error)
+            })
         }
       },
-      hayHorarios(horarios){
+      hayHorarios(horarios){ // Devolver si hay algo en el Array de horarios indicado
           if (horarios.length == 0){ return false }
           else { return true }
       },
-      borrarHorario(sala_id,horario_id){
+      borrarHorario(sala_id,horario_id){ // Borrar el horario indicado y verificar si también es el horario en curso para liberar la sala o no
           const sala = this.salas.filter(sala => sala.id === sala_id)[0];
           const nombre = sala.nombre;
           const horarios = JSON.parse(sala.horarios);
@@ -551,7 +568,9 @@ export default {
             }
         }).then(()=>{
             this.getSalas();
-        });
+        }).catch((error)=>{
+            console.log(error)
+        })
       }
   },
 }
