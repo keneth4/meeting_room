@@ -69,6 +69,8 @@
                                     class="ma-2"
                                     color="success"
                                     outlined
+                                    close
+                                    @click:close="borrarHorario(sala.id,index);"
                                     >
                                         {{ horario.nombre }}
                                     </v-chip>
@@ -440,14 +442,18 @@ export default {
             const horarios = JSON.parse(sala.horarios);
             const nuevo_status = this.verificarSala(horarios);
             var nuevosHorarios = JSON.parse(sala.horarios);
-            /*
+            console.log("Horarios viejos:");
+            console.log(horarios);
             horarios.forEach(horario => {
                 var ahora = new Date();
                 var fechas = this.pasearHorario(horario.horaInicio,horario.horaFin);
                 if (ahora >= fechas[1]){
                     nuevosHorarios = horarios.filter(x => x != horario);
                 }
-            });/*
+            });
+            console.log("Horarios nuevos:");
+            console.log(nuevosHorarios);
+            /*
             if (nuevosHorarios.length != 0){
                 nuevo_status = this.verificarSala(nuevosHorarios);
             }
@@ -456,7 +462,6 @@ export default {
             console.log("El nuevo horario queda:");
             console.log(nuevosHorarios);
             */
-            console.log(nuevo_status);
             axios({
                 method: 'put',
                 url: 'http://127.0.0.1:8000/salas/' + sala.id + '/',
@@ -529,6 +534,37 @@ export default {
       hayHorarios(horarios){
           if (horarios.length == 0){ return false }
           else { return true }
+      },
+      borrarHorario(sala_id,horario_id){
+          const sala = this.salas.filter(sala => sala.id === sala_id)[0];
+          const nombre = sala.nombre;
+          const horarios = JSON.parse(sala.horarios);
+          var bandera = false;
+          var status = sala.status;
+          var ahora = new Date();
+          var fechas = this.pasearHorario(horarios[horario_id].horaInicio,horarios[horario_id].horaFin);
+          if (ahora >= fechas[0] && ahora < fechas[1]){
+            status = 'libre';
+          }
+          horarios.splice(horario_id, 1);
+          axios({
+            method: 'put',
+            url: 'http://127.0.0.1:8000/salas/' + sala_id + '/',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            data: {
+                nombre: nombre,
+                status: status,
+                horarios: JSON.stringify(horarios),
+            },
+            auth: {
+                username: 'lion',
+                password: '123'
+            }
+        }).then(()=>{
+            this.getSalas();
+        });
       }
   },
 }
