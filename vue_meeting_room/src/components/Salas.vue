@@ -442,8 +442,6 @@ export default {
             const horarios = JSON.parse(sala.horarios);
             const nuevo_status = this.verificarSala(horarios);
             var nuevosHorarios = JSON.parse(sala.horarios);
-            console.log("Horarios viejos:");
-            console.log(horarios);
             horarios.forEach(horario => {
                 var ahora = new Date();
                 var fechas = this.pasearHorario(horario.horaInicio,horario.horaFin);
@@ -451,17 +449,6 @@ export default {
                     nuevosHorarios = horarios.filter(x => x != horario);
                 }
             });
-            console.log("Horarios nuevos:");
-            console.log(nuevosHorarios);
-            /*
-            if (nuevosHorarios.length != 0){
-                nuevo_status = this.verificarSala(nuevosHorarios);
-            }
-            
-            console.log("En sala "+nombre);
-            console.log("El nuevo horario queda:");
-            console.log(nuevosHorarios);
-            */
             axios({
                 method: 'put',
                 url: 'http://127.0.0.1:8000/salas/' + sala.id + '/',
@@ -471,7 +458,7 @@ export default {
                 data: {
                     nombre: nombre,
                     status: nuevo_status,
-                    //horarios: JSON.stringify(nuevosHorarios),
+                    horarios: JSON.stringify(nuevosHorarios),
                 },
                 auth: {
                     username: 'lion',
